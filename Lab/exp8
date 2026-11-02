@@ -1,0 +1,120 @@
+
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.datasets import make_moons
+from sklearn.model_selection import train_test_split
+
+np.random.seed(42)
+
+X, y = make_moons(n_samples=400, noise=0.2, random_state=42)
+y = y.reshape(-1, 1)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-np.clip(x, -500, 500)))
+
+input_size = 2
+hidden_size = 8
+output_size = 1
+
+W1 = np.random.randn(input_size, hidden_size) * 0.5
+b1 = np.zeros((1, hidden_size))
+W2 = np.random.randn(hidden_size, output_size) * 0.5
+b2 = np.zeros((1, output_size))
+
+learning_rate = 0.5
+epochs = 10000
+losses = []
+
+for epoch in range(epochs):
+    z1 = X_train @ W1 + b1
+    a1 = sigmoid(z1)
+
+    z2 = a1 @ W2 + b2
+    a2 = sigmoid(z2)
+
+    loss = -np.mean(
+        y_train * np.log(a2 + 1e-8) +
+        (1 - y_train) * np.log(1 - a2 + 1e-8)
+    )
+
+    dz2 = a2 - y_train
+    dW2 = a1.T @ dz2 / len(X_train)
+    db2 = np.mean(dz2, axis=0, keepdims=True)
+
+    dz1 = (dz2 @ W2.T) * a1 * (1 - a1)
+    dW1 = X_train.T @ dz1 / len(X_train)
+    db1 = np.mean(dz1, axis=0, keepdims=True)
+
+    W2 -= learning_rate * dW2
+    b2 -= learning_rate * db2
+    W1 -= learning_rate * dW1
+    b1 -= learning_rate * db1
+
+    losses.append(loss)
+
+z1 = X_test @ W1 + b1
+a1 = sigmoid(z1)
+predictions = (sigmoid(a1 @ W2 + b2) >= 0.5).astype(int)
+
+accuracy = np.mean(predictions == y_test)
+print("Test Accuracy:", accuracy * 100)
+
+plt.plot(losses)
+plt.xlabel("Epochs")
+plt.ylabel("Loss")
+plt.title("Training Loss")
+plt.show()
+
+xx, yy = np.meshgrid(
+    np.linspace(X[:, 0].min() - 0.5, X[:, 0].max() + 0.5, 200),
+    np.linspace(X[:, 1].min() - 0.5, X[:, 1].max() + 0.5, 200)
+)
+
+grid = np.c_[xx.ravel(), yy.ravel()]
+hidden = sigmoid(grid @ W1 + b1)
+output = sigmoid(hidden @ W2 + b2)
+Z = (output >= 0.5).astype(int).reshape(xx.shape)
+
+plt.contourf(xx, yy, Z, alpha=0.3, cmap="coolwarm")
+plt.scatter(X[:, 0], X[:, 1], c=y.ravel(), cmap="coolwarm", edgecolors="k")
+plt.title("Non-linear Decision Boundary")
+plt.xlabel("Feature 1")
+plt.ylabel("Feature 2")
+plt.show()
+
+z1 = X_train[:1] @ W1 + b1
+a1 = sigmoid(z1)
+z2 = a1 @ W2 + b2
+a2 = sigmoid(z2)
+
+dz2 = a2 - y_train[:1]
+dz1 = (dz2 @ W2.T) * a1 * (1 - a1)
+analytic_gradient = (X_train[:1].T @ dz1)[0, 0] / len(X_train)
+
+epsilon = 1e-5
+original = W1[0, 0]
+
+def calculate_loss():
+    h = sigmoid(X_train[:1] @ W1 + b1)
+    o = sigmoid(h @ W2 + b2)
+    return -np.mean(
+        y_train[:1] * np.log(o + 1e-8) +
+        (1 - y_train[:1]) * np.log(1 - o + 1e-8)
+    )
+
+W1[0, 0] = original + epsilon
+loss_plus = calculate_loss()
+
+W1[0, 0] = original - epsilon
+loss_minus = calculate_loss()
+
+W1[0, 0] = original
+
+numerical_gradient = (loss_plus - loss_minus) / (2 * epsilon)
+
+print("Analytical Gradient:", analytic_gradient)
+print("Numerical Gradient:", numerical_gradient)
