@@ -1,0 +1,116 @@
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import bernoulli, binom, poisson, uniform, norm
+
+np.random.seed(42)
+
+n = 1000
+
+bernoulli_data = bernoulli.rvs(0.5, size=n)
+binomial_data = binom.rvs(n=10, p=0.5, size=n)
+poisson_data = poisson.rvs(mu=4, size=n)
+uniform_data = uniform.rvs(loc=0, scale=10, size=n)
+gaussian_data = norm.rvs(loc=0, scale=1, size=n)
+
+fig, axes = plt.subplots(2, 3, figsize=(14, 8))
+
+axes[0, 0].hist(bernoulli_data, bins=np.arange(-0.5, 2, 1), density=True, rwidth=0.8)
+x = np.array([0, 1])
+axes[0, 0].plot(x, bernoulli.pmf(x, 0.5), "ro")
+axes[0, 0].set_title("Bernoulli Distribution")
+
+axes[0, 1].hist(binomial_data, bins=np.arange(-0.5, 12, 1), density=True, rwidth=0.8)
+x = np.arange(0, 11)
+axes[0, 1].plot(x, binom.pmf(x, 10, 0.5), "ro")
+axes[0, 1].set_title("Binomial Distribution")
+
+axes[0, 2].hist(poisson_data, bins=np.arange(-0.5, 15, 1), density=True, rwidth=0.8)
+x = np.arange(0, 15)
+axes[0, 2].plot(x, poisson.pmf(x, 4), "ro")
+axes[0, 2].set_title("Poisson Distribution")
+
+axes[1, 0].hist(uniform_data, bins=30, density=True, alpha=0.7)
+x = np.linspace(0, 10, 100)
+axes[1, 0].plot(x, uniform.pdf(x, loc=0, scale=10), "r")
+axes[1, 0].set_title("Uniform Distribution")
+
+axes[1, 1].hist(gaussian_data, bins=30, density=True, alpha=0.7)
+x = np.linspace(-4, 4, 100)
+axes[1, 1].plot(x, norm.pdf(x, loc=0, scale=1), "r")
+axes[1, 1].set_title("Gaussian Distribution")
+
+for ax in axes.flat:
+    ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+prevalence = 0.01
+sensitivity = 0.95
+specificity = 0.90
+
+false_positive_rate = 1 - specificity
+
+p_positive = (
+    sensitivity * prevalence
+    + false_positive_rate * (1 - prevalence)
+)
+
+posterior = sensitivity * prevalence / p_positive
+
+print("Bayes' Theorem")
+print("Disease Prevalence:", prevalence)
+print("Sensitivity:", sensitivity)
+print("Specificity:", specificity)
+print("P(Disease | Positive):", round(posterior, 4))
+print("Percentage:", round(posterior * 100, 2), "%")
+
+N = 100000
+
+disease = np.random.binomial(1, prevalence, N)
+test_positive = np.zeros(N, dtype=int)
+
+disease_indices = disease == 1
+healthy_indices = disease == 0
+
+test_positive[disease_indices] = np.random.binomial(
+    1, sensitivity, disease_indices.sum()
+)
+
+test_positive[healthy_indices] = np.random.binomial(
+    1, false_positive_rate, healthy_indices.sum()
+)
+
+positive_count = np.sum(test_positive == 1)
+true_positive_count = np.sum(
+    (disease == 1) & (test_positive == 1)
+)
+
+empirical_posterior = true_positive_count / positive_count
+
+print("\nSimulation Results")
+print("Total Patients:", N)
+print("Positive Test Results:", positive_count)
+print("True Positive Results:", true_positive_count)
+print("Empirical Probability:", round(empirical_posterior, 4))
+print("Empirical Percentage:", round(empirical_posterior * 100, 2), "%")
+
+prevalences = np.linspace(0.001, 0.20, 200)
+
+posteriors = (
+    sensitivity * prevalences
+    / (
+        sensitivity * prevalences
+        + false_positive_rate * (1 - prevalences)
+    )
+)
+
+plt.figure(figsize=(8, 5))
+plt.plot(prevalences * 100, posteriors * 100)
+plt.xlabel("Disease Prevalence (%)")
+plt.ylabel("P(Disease | Positive) (%)")
+plt.title("Posterior Probability vs Disease Prevalence")
+plt.grid(True)
+plt.tight_layout()
+plt.show()
