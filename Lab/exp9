@@ -1,0 +1,128 @@
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import tensorflow as tf
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import (
+    accuracy_score, precision_score, recall_score,
+    f1_score, confusion_matrix, ConfusionMatrixDisplay
+)
+
+np.random.seed(42)
+tf.random.set_seed(42)
+
+n = 1000
+
+data = pd.DataFrame({
+    "tenure": np.random.randint(1, 72, n),
+    "monthly_charges": np.random.uniform(20, 120, n),
+    "contract_type": np.random.choice(["Month-to-month", "One year", "Two year"], n),
+    "complaints": np.random.randint(0, 6, n),
+    "data_usage": np.random.uniform(1, 100, n)
+})
+
+contract_score = data["contract_type"].map({
+    "Month-to-month": 1,
+    "One year": 0,
+    "Two year": -1
+})
+
+churn_probability = 1 / (
+    1 + np.exp(-(
+        -2
+        - 0.04 * data["tenure"]
+        + 0.025 * data["monthly_charges"]
+        + 0.6 * contract_score
+        + 0.5 * data["complaints"]
+        - 0.008 * data["data_usage"]
+    ))
+)
+
+data["Churn"] = np.random.binomial(1, churn_probability)
+
+data = pd.get_dummies(data, columns=["contract_type"], dtype=int)
+
+X = data.drop("Churn", axis=1)
+y = data["Churn"]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+widths = [16, 32, 64]
+results = []
+
+for width in widths:
+    model = tf.keras.Sequential([
+        tf.keras.layers.Input(shape=(X_train.shape[1],)),
+        tf.keras.layers.Dense(width, activation="relu"),
+        tf.keras.layers.Dense(width // 2, activation="relu"),
+        tf.keras.layers.Dense(1, activation="sigmoid")
+    ])
+
+    model.compile(
+        optimizer="adam",
+        loss="binary_crossentropy",
+        metrics=["accuracy"]
+    )
+
+    history = model.fit(
+        X_train, y_train,
+        validation_split=0.2,
+        epochs=40,
+        batch_size=32,
+        verbose=0
+    )
+
+    probabilities = model.predict(X_test, verbose=0).ravel()
+    predictions = (probabilities >= 0.5).astype(int)
+
+    accuracy = accuracy_score(y_test, predictions)
+    precision = precision_score(y_test, predictions, zero_division=0)
+    recall = recall_score(y_test, predictions, zero_division=0)
+    f1 = f1_score(y_test, predictions, zero_division=0)
+
+    results.append([width, accuracy, precision, recall, f1])
+
+    if width == 32:
+        best_model = model
+        best_history = history
+        best_predictions = predictions
+
+print("Model Comparison")
+print(pd.DataFrame(
+    results,
+    columns=["Hidden Layer Width", "Accuracy", "Precision", "Recall", "F1"]
+))
+
+plt.plot(best_history.history["accuracy"], label="Training Accuracy")
+plt.plot(best_history.history["val_accuracy"], label="Validation Accuracy")
+plt.xlabel("Epochs")
+plt.ylabel("Accuracy")
+plt.title("Training and Validation Accuracy")
+plt.legend()
+plt.show()
+
+plt.plot(best_history.history["loss"], label="Training Loss")
+plt.plot(best_history.history["val_loss"], label="Validation Loss")
+plt.xlabel("Epochs")
+plt.ylabel("Loss")
+plt.title("Training and Validation Loss")
+plt.legend()
+plt.show()
+
+cm = confusion_matrix(y_test, best_predictions)
+ConfusionMatrixDisplay(
+    confusion_matrix=cm,
+    display_labels=["Not Churn", "Churn"]
+).plot(cmap="Blues")
+
+plt.title("Confusion Matrix")
+plt.show()
