@@ -1,0 +1,112 @@
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+np.random.seed(42)
+
+X = np.random.rand(100, 2)
+y = ((X[:, 0] + X[:, 1]) > 1).astype(int)
+
+weights = np.zeros(2)
+bias = 0
+learning_rate = 0.1
+epochs = 20
+
+for epoch in range(epochs):
+    errors = 0
+
+    for i in range(len(X)):
+        z = np.dot(X[i], weights) + bias
+        prediction = 1 if z >= 0 else 0
+
+        error = y[i] - prediction
+
+        weights += learning_rate * error * X[i]
+        bias += learning_rate * error
+
+        if error != 0:
+            errors += 1
+
+    print("Epoch:", epoch + 1, "Errors:", errors)
+
+print("\nFinal Weights:", weights)
+print("Final Bias:", bias)
+
+plt.figure(figsize=(8, 5))
+
+plt.scatter(X[y == 0, 0], X[y == 0, 1], color="red", label="Rejected")
+plt.scatter(X[y == 1, 0], X[y == 1, 1], color="blue", label="Approved")
+
+x_values = np.linspace(0, 1, 100)
+
+if weights[1] != 0:
+    y_values = -(weights[0] * x_values + bias) / weights[1]
+    plt.plot(x_values, y_values, color="green", label="Decision Boundary")
+
+plt.xlabel("Credit Score")
+plt.ylabel("Income-to-Debt Ratio")
+plt.title("Perceptron Decision Boundary")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+X_xor = np.array([
+    [0, 0],
+    [0, 1],
+    [1, 0],
+    [1, 1]
+])
+
+y_xor = np.array([0, 1, 1, 0])
+
+weights_xor = np.zeros(2)
+bias_xor = 0
+
+for epoch in range(epochs):
+    errors = 0
+
+    for i in range(len(X_xor)):
+        z = np.dot(X_xor[i], weights_xor) + bias_xor
+        prediction = 1 if z >= 0 else 0
+
+        error = y_xor[i] - prediction
+
+        weights_xor += learning_rate * error * X_xor[i]
+        bias_xor += learning_rate * error
+
+        if error != 0:
+            errors += 1
+
+    print("XOR Epoch:", epoch + 1, "Errors:", errors)
+
+print("\nXOR Final Weights:", weights_xor)
+print("XOR Final Bias:", bias_xor)
+
+print("\nXOR Predictions:")
+for i in range(len(X_xor)):
+    z = np.dot(X_xor[i], weights_xor) + bias_xor
+    prediction = 1 if z >= 0 else 0
+    print(X_xor[i], "Prediction:", prediction, "Actual:", y_xor[i])
+
+def step(x):
+    return np.where(x >= 0, 1, 0)
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+def relu(x):
+    return np.maximum(0, x)
+
+inputs = np.linspace(-5, 5, 100)
+
+plt.figure(figsize=(8, 5))
+plt.plot(inputs, step(inputs), label="Step")
+plt.plot(inputs, sigmoid(inputs), label="Sigmoid")
+plt.plot(inputs, relu(inputs), label="ReLU")
+
+plt.xlabel("Input")
+plt.ylabel("Output")
+plt.title("Activation Function Comparison")
+plt.legend()
+plt.grid(True)
+plt.show()
