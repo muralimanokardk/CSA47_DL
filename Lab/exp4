@@ -1,0 +1,88 @@
+import numpy as np
+import scipy.stats as stats
+import matplotlib.pyplot as plt
+
+np.random.seed(42)
+
+P_true = np.array([0.60, 0.25, 0.15])
+Q_model1 = np.array([0.55, 0.30, 0.15])
+Q_model2 = np.array([0.20, 0.50, 0.30])
+eps = 1e-12
+
+def compute_entropy(p):
+    p = np.clip(p, eps, 1.0)
+    return -np.sum(p * np.log2(p))
+
+def compute_cross_entropy(p, q):
+    q = np.clip(q, eps, 1.0)
+    return -np.sum(p * np.log2(q))
+
+def compute_kl_divergence(p, q):
+    p = np.clip(p, eps, 1.0)
+    q = np.clip(q, eps, 1.0)
+    return np.sum(p * np.log2(p / q))
+
+H_true = compute_entropy(P_true)
+H_true_scipy = stats.entropy(P_true, base=2)
+
+print("H(P):", H_true)
+print("H(P) SciPy:", H_true_scipy)
+
+H_P_Q1 = compute_cross_entropy(P_true, Q_model1)
+KL_P_Q1 = compute_kl_divergence(P_true, Q_model1)
+KL_P_Q1_scipy = stats.entropy(P_true, Q_model1, base=2)
+
+H_P_Q2 = compute_cross_entropy(P_true, Q_model2)
+KL_P_Q2 = compute_kl_divergence(P_true, Q_model2)
+KL_P_Q2_scipy = stats.entropy(P_true, Q_model2, base=2)
+
+print("\nModel 1:")
+print("H(P, Q1):", H_P_Q1)
+print("KL(P || Q1):", KL_P_Q1)
+print("KL(P || Q1) SciPy:", KL_P_Q1_scipy)
+print("H(P) + KL(P || Q1):", H_true + KL_P_Q1)
+print("Identity holds:", np.isclose(H_P_Q1, H_true + KL_P_Q1))
+
+print("\nModel 2:")
+print("H(P, Q2):", H_P_Q2)
+print("KL(P || Q2):", KL_P_Q2)
+print("KL(P || Q2) SciPy:", KL_P_Q2_scipy)
+print("H(P) + KL(P || Q2):", H_true + KL_P_Q2)
+print("Identity holds:", np.isclose(H_P_Q2, H_true + KL_P_Q2))
+
+KL_P_Q1_rev = compute_kl_divergence(Q_model1, P_true)
+KL_P_Q2_rev = compute_kl_divergence(Q_model2, P_true)
+
+print("\nAsymmetry Check:")
+print("Model 1 KL(P||Q1) vs KL(Q1||P):", KL_P_Q1, "vs", KL_P_Q1_rev)
+print("Model 2 KL(P||Q2) vs KL(Q2||P):", KL_P_Q2, "vs", KL_P_Q2_rev)
+
+y_hat = np.linspace(0.001, 0.999, 500)
+bce_y1 = -np.log2(y_hat)
+bce_y0 = -np.log2(1 - y_hat)
+
+plt.figure(figsize=(12, 5))
+
+plt.subplot(1, 2, 1)
+plt.plot(y_hat, bce_y1, label="y = 1", color="crimson")
+plt.plot(y_hat, bce_y0, label="y = 0", color="navy")
+plt.xlabel("Predicted Probability")
+plt.ylabel("BCE Loss (bits)")
+plt.grid(True)
+plt.legend()
+
+plt.subplot(1, 2, 2)
+categories = ["Sunny", "Cloudy", "Rainy"]
+x = np.arange(len(categories))
+width = 0.25
+
+plt.bar(x - width, P_true, width, label="True (P)")
+plt.bar(x, Q_model1, width, label="Model 1 (Q1)")
+plt.bar(x + width, Q_model2, width, label="Model 2 (Q2)")
+plt.xticks(x, categories)
+plt.ylabel("Probability")
+plt.grid(True, axis="y")
+plt.legend()
+
+plt.tight_layout()
+plt.show()
