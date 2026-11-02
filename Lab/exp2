@@ -1,0 +1,102 @@
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+np.random.seed(42)
+
+data = pd.DataFrame({
+    "Haemoglobin": np.random.normal(13, 1.5, 200),
+    "RBC_Count": np.random.normal(4.8, 0.6, 200),
+    "Glucose": np.random.normal(100, 15, 200),
+    "Cholesterol": np.random.normal(200, 25, 200),
+    "BMI": np.random.normal(25, 4, 200)
+})
+
+data["RBC_Count"] = data["RBC_Count"] + 0.2 * data["Haemoglobin"]
+data["Cholesterol"] = data["Cholesterol"] + 0.3 * data["Glucose"]
+
+print("Original Dataset:")
+print(data.head())
+
+standardized_data = (data - data.mean()) / data.std()
+
+cov_matrix = standardized_data.cov()
+corr_matrix = standardized_data.corr()
+
+print("\nCovariance Matrix:")
+print(cov_matrix)
+
+print("\nCorrelation Matrix:")
+print(corr_matrix)
+
+plt.figure(figsize=(8, 6))
+plt.imshow(cov_matrix, cmap="coolwarm", aspect="auto")
+plt.colorbar()
+plt.xticks(range(len(data.columns)), data.columns, rotation=45)
+plt.yticks(range(len(data.columns)), data.columns)
+plt.title("Covariance Matrix Heatmap")
+plt.tight_layout()
+plt.show()
+
+plt.figure(figsize=(8, 6))
+plt.imshow(corr_matrix, cmap="coolwarm", vmin=-1, vmax=1)
+plt.colorbar()
+plt.xticks(range(len(data.columns)), data.columns, rotation=45)
+plt.yticks(range(len(data.columns)), data.columns)
+plt.title("Correlation Matrix Heatmap")
+plt.tight_layout()
+plt.show()
+
+eigenvalues, eigenvectors = np.linalg.eigh(cov_matrix)
+
+indices = np.argsort(eigenvalues)[::-1]
+eigenvalues = eigenvalues[indices]
+eigenvectors = eigenvectors[:, indices]
+
+print("\nEigenvalues:")
+print(eigenvalues)
+
+print("\nEigenvectors:")
+print(eigenvectors)
+
+explained_variance = eigenvalues / np.sum(eigenvalues) * 100
+
+print("\nPercentage of Variance Captured:")
+for i, value in enumerate(explained_variance):
+    print(f"Principal Component {i + 1}: {value:.2f}%")
+
+plt.figure(figsize=(8, 5))
+plt.bar(
+    range(1, len(explained_variance) + 1),
+    explained_variance
+)
+plt.xlabel("Principal Component")
+plt.ylabel("Explained Variance (%)")
+plt.title("Percentage of Variance Captured")
+plt.xticks(range(1, len(explained_variance) + 1))
+plt.tight_layout()
+plt.show()
+
+pca_data = standardized_data.to_numpy() @ eigenvectors[:, :2]
+
+plt.figure(figsize=(8, 6))
+plt.scatter(pca_data[:, 0], pca_data[:, 1], alpha=0.6)
+
+origin = np.array([0, 0])
+
+for i in range(2):
+    plt.arrow(
+        origin[0], origin[1],
+        eigenvectors[0, i] * 3,
+        eigenvectors[1, i] * 3,
+        head_width=0.15,
+        length_includes_head=True
+    )
+
+plt.xlabel("Principal Component 1")
+plt.ylabel("Principal Component 2")
+plt.title("Data Projection with Top Two Eigenvectors")
+plt.grid(True)
+plt.tight_layout()
+plt.show()
