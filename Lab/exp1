@@ -1,0 +1,71 @@
+
+import numpy as np
+import matplotlib.pyplot as plt
+customer_genre = np.array([
+    [5, 3, 0, 1, 2],
+    [4, 0, 0, 1, 1],
+    [1, 1, 5, 4, 0],
+    [0, 2, 4, 5, 1],
+    [5, 4, 0, 0, 2],
+    [0, 1, 4, 4, 0]
+])
+genre_book = np.array([
+    [0.9, 0.1, 0.2, 0.8],
+    [0.7, 0.3, 0.4, 0.6],
+    [0.1, 0.9, 0.8, 0.2],
+    [0.2, 0.8, 0.7, 0.3],
+    [0.6, 0.2, 0.1, 0.9]
+])
+
+print("Customer-Genre Matrix:\n", customer_genre)
+print("\nGenre-Book Matrix:\n", genre_book)
+score_matrix = np.dot(customer_genre, genre_book)
+print("\nCustomer-Book Score Matrix:\n", score_matrix)
+v1 = np.array([1, 2, 3])
+v2 = np.array([4, 5, 6])
+print("\nDot Product:", np.dot(v1, v2))
+print("\nElement-wise Addition:\n", customer_genre + customer_genre)
+print("\nElement-wise Multiplication:\n", customer_genre * customer_genre)
+print("\nTranspose:\n", customer_genre.T)
+square_matrix = np.array([[2, 1], [1, 2]])
+print("\nInverse:\n", np.linalg.inv(square_matrix))
+norms = np.linalg.norm(customer_genre, axis=1, keepdims=True)
+normalized = np.divide(
+    customer_genre, norms,
+    out=np.zeros_like(customer_genre, dtype=float),
+    where=norms != 0
+)
+similarity = np.dot(normalized, normalized.T)
+
+print("\nCosine Similarity Matrix:\n", np.round(similarity, 3))
+
+np.fill_diagonal(similarity, -1)
+i, j = np.unravel_index(np.argmax(similarity), similarity.shape)
+
+print("\nMost Similar Customers:", i + 1, "and", j + 1)
+print("Similarity Score:", round(similarity[i, j], 3))
+x = customer_genre[0]
+
+W = np.array([
+    [0.2, 0.4, 0.1, 0.3, 0.5],
+    [0.5, 0.1, 0.3, 0.2, 0.4],
+    [0.1, 0.3, 0.5, 0.4, 0.2]
+])
+
+b = np.array([0.1, 0.2, 0.3])
+y = np.dot(W, x) + b
+
+print("\nDense Layer Output:\n", y)
+plt.figure(figsize=(8, 5))
+plt.imshow(score_matrix, cmap="viridis", aspect="auto")
+plt.colorbar(label="Recommendation Score")
+plt.xlabel("Book")
+plt.ylabel("Customer")
+plt.title("Customer-Book Recommendation Score Heatmap")
+plt.xticks(range(4), ["Book 1", "Book 2", "Book 3", "Book 4"])
+plt.yticks(range(6), [
+    "Customer 1", "Customer 2", "Customer 3",
+    "Customer 4", "Customer 5", "Customer 6"
+])
+plt.tight_layout()
+plt.show()
